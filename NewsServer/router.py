@@ -6,6 +6,7 @@ import asyncio
 import json
 from fastapi import Depends,HTTPException
 from sqlalchemy.orm import Session
+from NewsServer.notifier import email
 from NewsServer import utils,models,schemas
 from NewsServer.database import SessionLocal,engine
 models.Base.metadata.create_all(bind=engine)
@@ -26,16 +27,21 @@ async def news():
     return res
 
 @company_route.post('/users/',response_model=schemas.User)
-def create_user(user:schemas.UserBase,db:Session=Depends(get_db)):
-    db_user=utils.get_user_by_email(db,email=user.email)
+async def create_user(user:schemas.UserBase,db:Session=Depends(get_db)):
+    db_user= utils.get_user_by_email(db,email=user.email)
     if db_user:
         raise HTTPException(status_code=400,detail="email already exist")
     return utils.create_user(db,user=user)
 
 @company_route.get('/users/',response_model=List[schemas.User])
-def read_user(skip:int=0,limit:int=100,db:Session=Depends(get_db)):
-    users=utils.get_users(db,skip=skip,limit=limit)
+async def read_user(skip:int=0,limit:int=100,db:Session=Depends(get_db)):
+    users= utils.get_users(db,skip=skip,limit=limit)
     return users
+@company_route.get('/users_email/',response_model=List[schemas.UserBase])
+async def read_user(skip:int=0,limit:int=100,db:Session=Depends(get_db)):
+    users_email= utils.get_users_email(db,skip=skip,limit=limit)
+    await email('hello')
+    return users_email
 
 
 
