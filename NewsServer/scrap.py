@@ -3,8 +3,6 @@ import requests
 import asyncio
 import aiohttp
 import json
-import uuid
-
 from NewsServer.notifier import produce
 import aioredis
 redis=aioredis.Redis(host="localhost",port=6379,db=0)
@@ -15,7 +13,9 @@ async def parse_intuit(session):
       async with session.get(url) as request:
         if request.status!=200:
              raise Exception(f"Failed to fetch {url}: {request.status}")
+        
         content=await request.text()
+       
         res=[]
         soup=BeautifulSoup(content,'lxml')
         blocks=soup.find_all('a',class_='rkv-card__link')
@@ -23,7 +23,6 @@ async def parse_intuit(session):
             content=block.get('aria-label')
             link=block.get('href')
             dict={
-                 "item_id": uuid.uuid1().hex,
                   "link":link,
                   "title":'Innovative Thinking',
                  "body":content,
@@ -41,7 +40,7 @@ async def parse_jpmorgan(session):
         soup= BeautifulSoup(content,'lxml')
         blocks=soup.find_all('div',class_='cmp-text')
         for block in blocks:
-             title_name='JP morgan latest..'
+             title_name=''
              title=block.find('span',class_='title-large')
              if title:
                   title_name=title.text
@@ -55,7 +54,6 @@ async def parse_jpmorgan(session):
                   link= block.find('a',class_='chaseanalytics-track-link').get('href')
                   link='https://www.jpmorgan.com'+link
              dict={
-                  "item_id":  uuid.uuid1().hex,
                   "link":link,
                   "title":title_name,
                   "body":body,
@@ -77,7 +75,6 @@ async def parse_microsoft(session):
              title=block.find('span',class_='blog-name').find('a').get_text(strip=True)
              body=block.find('div',class_='details').find('div',class_='body').get_text(strip=True)
              dict={
-                  "item_id":  uuid.uuid1().hex,
                   "link":'https://techcommunity.microsoft.com'+link,
                   "title":title,
                   "body":body
@@ -96,7 +93,6 @@ async def fetch_all(session):
 
 async def check_update(res):
     content=await redis.get('news-data')
-  
     if content is None:
          await redis.set('news-data',json.dumps(res))
     
